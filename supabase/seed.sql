@@ -1,0 +1,2 @@
+-- Empty seed file for local Supabase smoke tests.
+-- MVP data is created through the app flows, not preloaded here.
