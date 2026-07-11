@@ -616,8 +616,16 @@
 
 .homework-summary p {
   color: var(--muted);
+  display: -webkit-box;
+  line-clamp: 4;
   line-height: 1.55;
   margin-top: 0;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 
 .homework-summary .eyebrow {

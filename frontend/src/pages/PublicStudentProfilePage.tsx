@@ -209,7 +209,9 @@ export function PublicStudentProfilePage() {
         <div>
           <p className="eyebrow">Ближайшее Д/З / последнее Д/З</p>
           <h2>{actualHomework?.topic || 'Пока нет заданий'}</h2>
-          <p>{actualHomework?.homeworkText || 'Когда репетитор добавит занятие, задание появится здесь.'}</p>
+          <p title={actualHomework?.homeworkText || undefined}>
+            {actualHomework?.homeworkText || 'Когда репетитор добавит занятие, задание появится здесь.'}
+          </p>
         </div>
         <div className="summary-actions">
           {actualHomework?.homeworkDeadline && <span>Дедлайн: {formatDate(actualHomework.homeworkDeadline)}</span>}

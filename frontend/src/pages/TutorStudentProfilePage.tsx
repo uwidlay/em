@@ -79,7 +79,9 @@ export function TutorStudentProfilePage({
         <div>
           <p className="eyebrow">Ближайшее Д/З / последнее Д/З</p>
           <h3>{actualHomework?.topic || 'Пока нет уроков'}</h3>
-          <p>{actualHomework?.homeworkText || 'Создайте занятие, чтобы появилось актуальное задание.'}</p>
+          <p title={actualHomework?.homeworkText || undefined}>
+            {actualHomework?.homeworkText || 'Создайте занятие, чтобы появилось актуальное задание.'}
+          </p>
         </div>
         {actualHomework?.homeworkDeadline && <span>Дедлайн: {formatDate(actualHomework.homeworkDeadline)}</span>}
       </section>
