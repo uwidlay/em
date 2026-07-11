@@ -47,6 +47,8 @@ export function getLateDays(deadline?: string, submittedAt?: string) {
 
 export function studentUrl(token: string) {
   const path = `/student/${token}`
-  if (typeof window === 'undefined') return path
-  return `${window.location.origin}${path}`
+  const configuredOrigin = (import.meta.env.VITE_PUBLIC_APP_URL as string | undefined)?.replace(/\/$/, '')
+  const browserOrigin = typeof window === 'undefined' ? '' : window.location.origin
+  const origin = configuredOrigin || browserOrigin || 'https://em-orcin.vercel.app'
+  return `${origin}${path}`
 }
