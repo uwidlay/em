@@ -1,11 +1,12 @@
 import type { ApiResult, TutorProfileResult, TutorWorkspaceResult } from './contracts'
 import { getSupabaseClient } from './supabaseClient'
 import { mapLesson } from '../mappers/lessonMapper'
-import type { LessonRow } from '../mappers/lessonMapper'
+import type { LessonMaterialRow, LessonRow } from '../mappers/lessonMapper'
 import { mapStudent } from '../mappers/studentMapper'
 import type { StudentRow } from '../mappers/studentMapper'
 import type { HomeworkPhotoRow } from '../mappers/homeworkMapper'
 import type { Tutor } from '../../types/domain'
+import { getLessonFileStoragePath, LESSON_FILE_BUCKET } from '../../utils/lessonFiles'
 
 type TutorRow = {
   id: string
@@ -129,6 +130,30 @@ async function attachSignedPhotoUrls(lessons: LessonRow[]) {
   return lessons
 }
 
+async function attachSignedLessonFileUrls(lessons: LessonRow[]) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return lessons
+
+  const materials = lessons.flatMap((lesson) => lesson.lesson_materials || [])
+
+  await Promise.all(
+    materials.map(async (material) => {
+      const storagePath = getLessonFileStoragePath(material.url)
+      if (!storagePath) return
+
+      const { data, error } = await supabase.storage
+        .from(LESSON_FILE_BUCKET)
+        .createSignedUrl(storagePath, 60 * 10)
+
+      if (!error && data?.signedUrl) {
+        ;(material as LessonMaterialRow).signed_url = data.signedUrl
+      }
+    }),
+  )
+
+  return lessons
+}
+
 export async function getTutorProfile(): Promise<ApiResult<TutorProfileResult>> {
   const result = await getAuthenticatedTutorRow()
   if (!result.data) return { data: null, error: result.error }
@@ -235,7 +260,9 @@ export async function getTutorWorkspace(): Promise<ApiResult<TutorWorkspaceResul
         .order('lesson_date', { ascending: false })
 
       if (lessonsError) throw lessonsError
-      lessonRows = await attachSignedPhotoUrls((lessonsData || []) as unknown as LessonRow[])
+      lessonRows = (lessonsData || []) as unknown as LessonRow[]
+      lessonRows = await attachSignedPhotoUrls(lessonRows)
+      lessonRows = await attachSignedLessonFileUrls(lessonRows)
     }
 
     return {

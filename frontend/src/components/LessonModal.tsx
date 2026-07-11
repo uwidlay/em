@@ -1,7 +1,8 @@
-import { Trash2, X } from 'lucide-react'
+import { Paperclip, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import type { HomeworkStatus, Lesson, LessonMaterial, MaterialType } from '../types/domain'
 import { homeworkStatusLabel, materialTypeLabel } from '../utils/format'
+import { formatFileSize, isLessonFileMaterial } from '../utils/lessonFiles'
 import { validateHomeworkDeadline } from '../utils/validation'
 import { Stars } from './Stars'
 
@@ -49,7 +50,21 @@ export function LessonModal({ lesson, studentId, onClose, onSave }: Props) {
     setMaterialDraft({ id: '', title: '', url: '', type: 'note' })
   }
 
-  function updateMaterial(id: string, field: keyof LessonMaterial, value: string) {
+  function addHomeworkFiles(files: FileList | null) {
+    if (!files?.length) return
+    const nextMaterials = Array.from(files).map((file, index) => ({
+      id: `file-${Date.now()}-${index}`,
+      title: file.name,
+      url: '',
+      type: 'other' as MaterialType,
+      pendingFile: file,
+      sizeBytes: file.size,
+    }))
+
+    update('materials', [...form.materials, ...nextMaterials])
+  }
+
+  function updateMaterial(id: string, field: 'title' | 'url' | 'type', value: string) {
     update(
       'materials',
       form.materials.map((material) =>
@@ -142,6 +157,9 @@ export function LessonModal({ lesson, studentId, onClose, onSave }: Props) {
 
           <div className="wide nested-section">
             <h3>Материалы занятия</h3>
+            <p className="section-hint">
+              Добавьте ссылку или прикрепите файл к уроку/ДЗ. Ученик увидит эти материалы в своей карточке.
+            </p>
             <div className="inline-fields">
               <select
                 value={materialDraft.type}
@@ -167,6 +185,22 @@ export function LessonModal({ lesson, studentId, onClose, onSave }: Props) {
                 Добавить
               </button>
             </div>
+            <div className="upload-actions material-upload-actions">
+              <label className="soft-button file-trigger">
+                <Paperclip size={16} />
+                Прикрепить файл
+                <input
+                  className="visually-hidden-file"
+                  type="file"
+                  multiple
+                  onChange={(event) => {
+                    addHomeworkFiles(event.target.files)
+                    event.currentTarget.value = ''
+                  }}
+                />
+              </label>
+              <span>Можно добавить PDF, изображения, документы или презентации.</span>
+            </div>
             {form.materials.length > 0 && (
               <div className="editable-list">
                 {form.materials.map((material) => (
@@ -185,11 +219,21 @@ export function LessonModal({ lesson, studentId, onClose, onSave }: Props) {
                       value={material.title}
                       onChange={(event) => updateMaterial(material.id, 'title', event.target.value)}
                     />
-                    <input
-                      aria-label="URL материала"
-                      value={material.url}
-                      onChange={(event) => updateMaterial(material.id, 'url', event.target.value)}
-                    />
+                    {material.pendingFile || isLessonFileMaterial(material.url) ? (
+                      <div className="attached-material-note" aria-label="Прикрепленный файл">
+                        <Paperclip size={15} />
+                        <span>
+                          {material.pendingFile ? 'Будет загружен при сохранении' : 'Файл прикреплен'}
+                          {material.sizeBytes ? ` · ${formatFileSize(material.sizeBytes)}` : ''}
+                        </span>
+                      </div>
+                    ) : (
+                      <input
+                        aria-label="URL материала"
+                        value={material.url}
+                        onChange={(event) => updateMaterial(material.id, 'url', event.target.value)}
+                      />
+                    )}
                     <button className="icon-button" type="button" onClick={() => removeMaterial(material.id)} aria-label="Удалить материал">
                       <Trash2 size={16} />
                     </button>

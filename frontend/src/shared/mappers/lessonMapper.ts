@@ -1,4 +1,5 @@
 import type { Lesson, LessonMaterial, MaterialType } from '../../types/domain'
+import { getLessonFileStoragePath } from '../../utils/lessonFiles'
 import { mapHomeworkSubmission } from './homeworkMapper'
 import type { HomeworkSubmissionRow } from './homeworkMapper'
 
@@ -8,6 +9,7 @@ export type LessonMaterialRow = {
   url: string
   material_type: MaterialType
   sort_order: number
+  signed_url?: string | null
 }
 
 export type LessonRow = {
@@ -27,11 +29,14 @@ export type LessonRow = {
 }
 
 export function mapLessonMaterial(row: LessonMaterialRow): LessonMaterial {
+  const storagePath = getLessonFileStoragePath(row.url)
+
   return {
     id: row.id,
     title: row.title,
-    url: row.url,
+    url: row.signed_url || row.url,
     type: row.material_type,
+    storagePath: storagePath || undefined,
   }
 }
 

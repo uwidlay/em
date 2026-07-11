@@ -7,6 +7,8 @@ const corsHeaders = {
 };
 
 const PHOTO_BUCKET = "homework-photos";
+const LESSON_FILE_BUCKET = "lesson-files";
+const LESSON_FILE_URL_PREFIX = "lesson-file://";
 const MAX_PHOTOS_PER_SUBMISSION = 10;
 const MAX_ORIGINAL_PHOTO_BYTES = 10 * 1024 * 1024;
 
@@ -239,12 +241,43 @@ async function getProfile(student: StudentRecord) {
   if (lessonsError) throw lessonsError;
   if (updateEventsError) throw updateEventsError;
 
+  const lessonsWithSignedMaterials = await attachSignedLessonFileUrls((lessons ?? []) as Array<Record<string, unknown>>);
+
   return {
     student,
     usefulLinks: usefulLinks ?? [],
-    lessons: lessons ?? [],
+    lessons: lessonsWithSignedMaterials,
     updateEvents: updateEvents ?? [],
   };
+}
+
+async function attachSignedLessonFileUrls(lessons: Array<Record<string, unknown>>) {
+  await Promise.all(
+    lessons.flatMap((lesson) => {
+      const materials = Array.isArray(lesson.lesson_materials) ? lesson.lesson_materials : [];
+
+      return materials.map(async (rawMaterial) => {
+        const material = rawMaterial as { url?: string | null; signed_url?: string };
+        const storagePath = lessonFileStoragePathFromUrl(material.url);
+        if (!storagePath) return;
+
+        const { data, error } = await supabaseAdmin.storage
+          .from(LESSON_FILE_BUCKET)
+          .createSignedUrl(storagePath, 60 * 10);
+
+        if (!error && data?.signedUrl) {
+          material.signed_url = data.signedUrl;
+        }
+      });
+    }),
+  );
+
+  return lessons;
+}
+
+function lessonFileStoragePathFromUrl(url: string | null | undefined): string | null {
+  if (!url?.startsWith(LESSON_FILE_URL_PREFIX)) return null;
+  return url.slice(LESSON_FILE_URL_PREFIX.length);
 }
 
 async function prepareHomeworkPhotoUploads(student: StudentRecord, body: RequestBody) {

@@ -60,6 +60,9 @@ export type LessonMaterial = {
   title: string
   url: string
   type: MaterialType
+  storagePath?: string
+  pendingFile?: File
+  sizeBytes?: number
 }
 
 export type HomeworkPhoto = {

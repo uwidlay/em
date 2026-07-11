@@ -1148,6 +1148,12 @@ textarea:focus {
   padding: 14px;
 }
 
+.section-hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: -2px 0 12px;
+}
+
 .inline-fields {
   display: grid;
   gap: 8px;
@@ -1172,6 +1178,39 @@ textarea:focus {
 
 .editable-row.material-row {
   grid-template-columns: minmax(120px, 0.8fr) minmax(140px, 1fr) minmax(180px, 1.2fr) auto;
+}
+
+.material-upload-actions {
+  margin: 10px 0;
+}
+
+.file-trigger {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 7px;
+}
+
+.attached-material-note {
+  align-items: center;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 7px;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.attached-material-note span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .editable-row input,

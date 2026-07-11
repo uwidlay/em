@@ -37,7 +37,7 @@ function MaterialIcon({ material }: { material: LessonMaterial }) {
   }
   const Icon = icons[material.type]
   return (
-    <a className="material-link" href={material.url} target="_blank" title={`${materialTypeLabel[material.type]}: ${material.title}`}>
+    <a className="material-link" href={material.url} target="_blank" rel="noreferrer" title={`${materialTypeLabel[material.type]}: ${material.title}`}>
       <Icon size={16} />
       <span>{material.title}</span>
     </a>
