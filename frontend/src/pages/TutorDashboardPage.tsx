@@ -65,7 +65,7 @@ export function TutorDashboardPage({ students, lessons, onCopyStudentLink }: Pro
     <section className="page-section">
       <div className="section-header">
         <div>
-          <p className="eyebrow">SCR-005</p>
+          <p className="eyebrow">Рабочее пространство</p>
           <h2>Ученики</h2>
         </div>
         <button className="primary-button" type="button" onClick={() => navigate('/app/students/new')}>

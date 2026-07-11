@@ -52,7 +52,7 @@ export function TutorStudentProfilePage({
     <section className="profile-page">
       <div className="profile-hero">
         <div>
-          <p className="eyebrow">SCR-007</p>
+          <p className="eyebrow">Профиль ученика</p>
           <h2>{student.name}</h2>
           <p>{student.subject}{student.grade ? ` · ${student.grade}` : ''}</p>
         </div>
@@ -85,7 +85,7 @@ export function TutorStudentProfilePage({
 
       <div className="section-header">
         <div>
-          <p className="eyebrow">SCR-008</p>
+          <p className="eyebrow">История занятий</p>
           <h2>Занятия</h2>
         </div>
         <button

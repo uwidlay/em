@@ -25,7 +25,7 @@ export function StudentEditorPage({ students, onCreate, onUpdate }: Props) {
     <section className="page-section narrow-section">
       <div className="section-header">
         <div>
-          <p className="eyebrow">SCR-006</p>
+          <p className="eyebrow">Карточка ученика</p>
           <h2>{student ? 'Редактировать ученика' : 'Создать ученика'}</h2>
         </div>
       </div>

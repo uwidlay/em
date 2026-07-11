@@ -230,7 +230,7 @@ export function PublicStudentProfilePage() {
       <section className="page-section">
         <div className="section-header">
           <div>
-            <p className="eyebrow">SCR-009</p>
+            <p className="eyebrow">История занятий</p>
             <h2>Занятия</h2>
           </div>
         </div>

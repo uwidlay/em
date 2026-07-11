@@ -61,7 +61,7 @@ export function SettingsPage({ tutor, onSaveSettings }: Props) {
     <section className="page-section narrow-section">
       <div className="section-header">
         <div>
-          <p className="eyebrow">SCR-011</p>
+          <p className="eyebrow">Личный кабинет</p>
           <h2>Настройки профиля</h2>
         </div>
       </div>
