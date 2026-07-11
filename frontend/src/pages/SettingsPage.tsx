@@ -6,31 +6,55 @@ import {
   normalizeTutorPhoneInput,
   passwordRequirementStates,
   validateRussianPhone,
+  validateTutorEmailDomain,
   validateTutorPassword,
 } from '../utils/validation'
 
 type Props = {
   tutor: Tutor
+  onSaveSettings: (payload: { name: string; email: string; phone: string; password?: string }) => Promise<{ ok: boolean; error?: string; message?: string }>
 }
 
-export function SettingsPage({ tutor }: Props) {
+export function SettingsPage({ tutor, onSaveSettings }: Props) {
+  const [name, setName] = useState(tutor.name)
+  const [email, setEmail] = useState(tutor.email)
   const [phone, setPhone] = useState(normalizeTutorPhoneInput(tutor.phone))
   const [password, setPassword] = useState('')
-  const [errors, setErrors] = useState<{ phone?: string; password?: string }>({})
-  const [isSaved, setIsSaved] = useState(false)
+  const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string; password?: string; form?: string }>({})
+  const [successMessage, setSuccessMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const passwordRequirements = useMemo(() => passwordRequirementStates(password), [password])
 
-  function submitSettings(event: FormEvent<HTMLFormElement>) {
+  async function submitSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors = {
+      name: name.trim() ? '' : 'Введите имя репетитора.',
+      email: validateTutorEmailDomain(email),
       phone: validateRussianPhone(phone),
       password: validateTutorPassword(password, { optional: true }),
+      form: '',
     }
     setErrors(nextErrors)
-    setIsSaved(false)
-    if (nextErrors.phone || nextErrors.password) return
-    setIsSaved(true)
+    setSuccessMessage('')
+    if (nextErrors.name || nextErrors.email || nextErrors.phone || nextErrors.password) return
+
+    setIsSaving(true)
+    const result = await onSaveSettings({
+      name: name.trim(),
+      email: email.trim(),
+      phone,
+      password: password || undefined,
+    })
+    setIsSaving(false)
+
+    if (!result.ok) {
+      setErrors({ ...nextErrors, form: result.error || 'Не удалось сохранить настройки.' })
+      return
+    }
+
+    setPassword('')
+    setSuccessMessage(result.message || 'Настройки сохранены.')
   }
 
   return (
@@ -42,8 +66,16 @@ export function SettingsPage({ tutor }: Props) {
         </div>
       </div>
       <form className="form-grid one-column" onSubmit={submitSettings}>
-        <label>Имя<input defaultValue={tutor.name} /></label>
-        <label>Email<input defaultValue={tutor.email} type="email" /></label>
+        <label>
+          Имя
+          <input aria-invalid={Boolean(errors.name)} value={name} onChange={(event) => setName(event.target.value)} />
+          {errors.name && <span className="field-error">{errors.name}</span>}
+        </label>
+        <label>
+          Email
+          <input aria-invalid={Boolean(errors.email)} value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+          {errors.email && <span className="field-error">{errors.email}</span>}
+        </label>
         <label>
           Телефон
           <input
@@ -86,8 +118,11 @@ export function SettingsPage({ tutor }: Props) {
           )}
           {errors.password && <span className="field-error">{errors.password}</span>}
         </label>
-        {isSaved && <p className="success-message">Настройки сохранены в mock-состоянии.</p>}
-        <button className="primary-button" type="submit">Сохранить настройки</button>
+        {errors.form && <p className="form-error">{errors.form}</p>}
+        {successMessage && <p className="success-message">{successMessage}</p>}
+        <button className="primary-button" disabled={isSaving} type="submit">
+          {isSaving ? 'Сохраняем...' : 'Сохранить настройки'}
+        </button>
       </form>
     </section>
   )

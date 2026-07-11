@@ -33,7 +33,7 @@ import {
   updateStudent as updateSupabaseStudent,
 } from './shared/api/studentsApi'
 import { getSupabaseClient } from './shared/api/supabaseClient'
-import { getTutorWorkspace } from './shared/api/tutorApi'
+import { getTutorWorkspace, updateTutorSettings } from './shared/api/tutorApi'
 import type { Lesson, Student, Tutor } from './types/domain'
 import { studentUrl } from './utils/format'
 import './styles/app.css'
@@ -314,6 +314,31 @@ function App() {
     showToast('Новая ссылка создана.')
   }
 
+  async function saveTutorSettings(payload: { name: string; email: string; phone: string; password?: string }) {
+    if (shouldUseSupabaseApi()) {
+      const result = await updateTutorSettings(payload)
+      if (!result.data) {
+        return { ok: false, error: result.error || 'Не удалось сохранить настройки.' }
+      }
+
+      setTutor(result.data.tutor)
+      const message = result.data.needsEmailConfirmation
+        ? 'Настройки сохранены. Подтвердите новый email по ссылке из письма.'
+        : 'Настройки сохранены.'
+      showToast(message)
+      return { ok: true, message }
+    }
+
+    setTutor((current) => ({
+      ...current,
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+    }))
+    showToast('Настройки сохранены.')
+    return { ok: true, message: 'Настройки сохранены.' }
+  }
+
   async function signOut() {
     const result = await signOutTutor()
     showToast(result.ok ? 'Вы вышли из аккаунта.' : result.error || 'Не удалось выйти.')
@@ -373,7 +398,7 @@ function App() {
             element={<StudentEditorPage students={students} onCreate={createStudent} onUpdate={updateStudent} />}
           />
           <Route path="schedule" element={<SchedulePage events={mockScheduleEvents} />} />
-          <Route path="settings" element={<SettingsPage tutor={tutor} />} />
+          <Route path="settings" element={<SettingsPage tutor={tutor} onSaveSettings={saveTutorSettings} />} />
         </Route>
 
         <Route

@@ -14,6 +14,18 @@ type TutorRow = {
   phone: string
 }
 
+export type UpdateTutorSettingsPayload = {
+  name: string
+  email: string
+  phone: string
+  password?: string
+}
+
+export type UpdateTutorSettingsResult = ApiResult<{
+  tutor: Tutor
+  needsEmailConfirmation: boolean
+}>
+
 function mapTutor(row: TutorRow): Tutor {
   return {
     id: row.id,
@@ -231,6 +243,76 @@ export async function getTutorWorkspace(): Promise<ApiResult<TutorWorkspaceResul
         tutor: mapTutor(tutorResult.data),
         students: studentRows.map((student) => mapStudent(student)),
         lessons: lessonRows.map(mapLesson),
+      },
+      error: null,
+    }
+  } catch (error) {
+    return { data: null, error: apiErrorMessage(error) }
+  }
+}
+
+export async function updateTutorSettings(payload: UpdateTutorSettingsPayload): Promise<UpdateTutorSettingsResult> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return missingClientResult()
+
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw sessionError
+
+    const user = sessionData.session?.user
+    if (!user) {
+      return {
+        data: null,
+        error: 'Войдите как репетитор, чтобы сохранить настройки.',
+      }
+    }
+
+    const emailChanged = payload.email.trim().toLowerCase() !== (user.email || '').trim().toLowerCase()
+
+    const authUpdate: {
+      email?: string
+      password?: string
+      data: {
+        name: string
+        phone: string
+        role: string
+      }
+    } = {
+      data: {
+        name: payload.name,
+        phone: payload.phone,
+        role: 'tutor',
+      },
+    }
+
+    if (emailChanged) {
+      authUpdate.email = payload.email
+    }
+
+    if (payload.password) {
+      authUpdate.password = payload.password
+    }
+
+    const { error: authError } = await supabase.auth.updateUser(authUpdate)
+    if (authError) throw authError
+
+    const { data, error } = await supabase
+      .from('tutors')
+      .update({
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+      })
+      .eq('auth_user_id', user.id)
+      .select('id, name, email, phone')
+      .single()
+
+    if (error) throw error
+
+    return {
+      data: {
+        tutor: mapTutor(data),
+        needsEmailConfirmation: emailChanged,
       },
       error: null,
     }
