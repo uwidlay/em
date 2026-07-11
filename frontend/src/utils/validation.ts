@@ -81,7 +81,7 @@ export function validateTutorEmailDomain(value: string) {
   }
 
   if (!allowedRussianEmailDomains.includes(domain as (typeof allowedRussianEmailDomains)[number])) {
-    return 'Для регистрации и входа используйте почту Яндекса или Mail.ru.'
+    return 'Для регистрации и входа используйте российскую почту: Яндекс или Mail.ru.'
   }
 
   return ''
