@@ -63,7 +63,6 @@ export const allowedRussianEmailDomains = [
   'inbox.ru',
   'list.ru',
   'internet.ru',
-  'rambler.ru',
 ] as const
 
 export function getEmailDomain(value: string) {
@@ -82,7 +81,7 @@ export function validateTutorEmailDomain(value: string) {
   }
 
   if (!allowedRussianEmailDomains.includes(domain as (typeof allowedRussianEmailDomains)[number])) {
-    return 'Для регистрации и входа используйте российскую почту: Яндекс, Mail.ru или Rambler.'
+    return 'Для регистрации и входа используйте почту Яндекса или Mail.ru.'
   }
 
   return ''
