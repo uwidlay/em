@@ -22,6 +22,9 @@ export function AppShell({
 }: Props) {
   const navigate = useNavigate()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const profileAvatar = isWorkspaceLoading ? 'TS' : tutor.name.slice(0, 1)
+  const profileName = isWorkspaceLoading ? 'Загружаем профиль' : tutor.name
+  const profileEmail = isWorkspaceLoading ? 'Получаем данные' : tutor.email
 
   async function handleSignOut() {
     await onSignOut()
@@ -82,11 +85,11 @@ export function AppShell({
         </nav>
 
         <div className="sidebar-footer">
-          <div className="mini-profile">
-            <div className="avatar">{tutor.name.slice(0, 1)}</div>
+          <div className="mini-profile" aria-busy={isWorkspaceLoading}>
+            <div className="avatar">{profileAvatar}</div>
             <div className="sidebar-label">
-              <strong>{tutor.name}</strong>
-              <small>{tutor.email}</small>
+              <strong>{profileName}</strong>
+              <small>{profileEmail}</small>
             </div>
           </div>
           <button className="ghost-button" type="button" onClick={handleSignOut}>
