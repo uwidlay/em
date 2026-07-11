@@ -540,6 +540,10 @@
   text-align: center;
 }
 
+.workspace-loading-state {
+  min-height: 260px;
+}
+
 .profile-hero,
 .homework-summary {
   padding: 18px;

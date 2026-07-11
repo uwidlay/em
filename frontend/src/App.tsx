@@ -39,17 +39,18 @@ import { studentUrl } from './utils/format'
 import './styles/app.css'
 
 const initialWorkspace = getMockTutorWorkspace()
+const hasSupabaseClient = Boolean(getSupabaseClient())
 
 function App() {
   const [tutor, setTutor] = useState<Tutor>(initialWorkspace.tutor)
-  const [students, setStudents] = useState<Student[]>(initialWorkspace.students)
-  const [lessons, setLessons] = useState<Lesson[]>(initialWorkspace.lessons)
+  const [students, setStudents] = useState<Student[]>(() => (hasSupabaseClient ? [] : initialWorkspace.students))
+  const [lessons, setLessons] = useState<Lesson[]>(() => (hasSupabaseClient ? [] : initialWorkspace.lessons))
   const [toastMessage, setToastMessage] = useState('')
-  const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(false)
+  const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(hasSupabaseClient)
   const [workspaceError, setWorkspaceError] = useState<string | null>(null)
   const [isSupabaseWorkspace, setIsSupabaseWorkspace] = useState(false)
-  const [hasAuthSession, setHasAuthSession] = useState(() => !getSupabaseClient())
-  const [isAuthChecking, setIsAuthChecking] = useState(() => Boolean(getSupabaseClient()))
+  const [hasAuthSession, setHasAuthSession] = useState(() => !hasSupabaseClient)
+  const [isAuthChecking, setIsAuthChecking] = useState(() => hasSupabaseClient)
 
   const pendingReviews = useMemo(
     () => lessons.filter((lesson) => lesson.homeworkStatus === 'in_review' && !lesson.deletedAt).length,
@@ -86,6 +87,8 @@ function App() {
 
     const supabase = getSupabaseClient()
     if (!supabase) {
+      setStudents(initialWorkspace.students)
+      setLessons(initialWorkspace.lessons)
       setHasAuthSession(true)
       setIsAuthChecking(false)
       void loadTutorWorkspace()
@@ -104,8 +107,12 @@ function App() {
       setIsAuthChecking(false)
 
       if (session) {
+        setStudents([])
+        setLessons([])
         void loadTutorWorkspace()
       } else {
+        setStudents([])
+        setLessons([])
         setWorkspaceError(null)
         setIsSupabaseWorkspace(false)
       }
@@ -124,8 +131,8 @@ function App() {
 
         if (event === 'SIGNED_OUT') {
           setTutor(initialWorkspace.tutor)
-          setStudents(initialWorkspace.students)
-          setLessons(initialWorkspace.lessons)
+          setStudents([])
+          setLessons([])
           setWorkspaceError(null)
           setIsSupabaseWorkspace(false)
         }

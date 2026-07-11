@@ -111,7 +111,14 @@ export function AppShell({
             {pendingReviews > 0 && <span className="updates-pill">Д/З на проверке: {pendingReviews}</span>}
           </div>
         </header>
-        <Outlet />
+        {isWorkspaceLoading ? (
+          <section className="empty-state workspace-loading-state">
+            <h2>Загружаем кабинет...</h2>
+            <p>Подождите немного, мы получаем ваши данные из Supabase.</p>
+          </section>
+        ) : (
+          <Outlet />
+        )}
       </main>
     </div>
   )
