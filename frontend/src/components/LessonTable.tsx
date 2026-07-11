@@ -147,10 +147,12 @@ export function LessonTable({
                 </td>
                 <td><Stars value={lesson.understandingRating} /></td>
                 <td className="homework-cell">
-                  <strong className="homework-text-preview" title={lesson.homeworkText || undefined}>
-                    {lesson.homeworkText || 'Д/З не задано'}
-                  </strong>
-                  {lesson.homeworkDeadline && <small>Дедлайн: {formatDate(lesson.homeworkDeadline)}</small>}
+                  <div className="homework-cell-content">
+                    <strong className="homework-text-preview" title={lesson.homeworkText || undefined}>
+                      {lesson.homeworkText || 'Д/З не задано'}
+                    </strong>
+                    {lesson.homeworkDeadline && <small>Дедлайн: {formatDate(lesson.homeworkDeadline)}</small>}
+                  </div>
                 </td>
                 <td><StatusBadge type="homework" value={lesson.homeworkStatus} /></td>
                 <td>

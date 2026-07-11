@@ -653,9 +653,9 @@
 
 .lesson-table {
   border-collapse: collapse;
-  min-width: 1180px;
+  min-width: 1640px;
   table-layout: fixed;
-  width: 100%;
+  width: max(100%, 1640px);
 }
 
 .lesson-table th:nth-child(1),
@@ -670,17 +670,17 @@
 
 .lesson-table th:nth-child(3),
 .lesson-table td:nth-child(3) {
-  width: 170px;
+  width: 210px;
 }
 
 .lesson-table th:nth-child(4),
 .lesson-table td:nth-child(4) {
-  width: 112px;
+  width: 130px;
 }
 
 .lesson-table th:nth-child(5),
 .lesson-table td:nth-child(5) {
-  width: 230px;
+  width: 260px;
 }
 
 .lesson-table th:nth-child(6),
@@ -770,15 +770,16 @@
   font-size: 12px;
 }
 
-.homework-cell,
 .submission-cell,
 .materials-list {
   display: grid;
   gap: 7px;
 }
 
-.homework-cell {
-  align-content: start;
+.homework-cell-content {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
 }
 
 .homework-text-preview {
