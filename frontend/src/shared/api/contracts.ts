@@ -88,6 +88,18 @@ export type PreparedHomeworkUpload = {
   token: string
 }
 
+export type PreparedLessonFileUpload = {
+  clientFileIndex: number
+  storagePath: string
+  signedUrl: string
+  token: string
+}
+
+export type PrepareLessonFileUploadsResult = {
+  lessonId: string
+  uploadTargets: PreparedLessonFileUpload[]
+}
+
 export type PrepareHomeworkUploadsResult = {
   lessonId: string
   uploadTargets: PreparedHomeworkUpload[]

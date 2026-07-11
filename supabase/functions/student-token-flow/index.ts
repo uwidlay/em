@@ -14,16 +14,18 @@ const MAX_ORIGINAL_PHOTO_BYTES = 10 * 1024 * 1024;
 
 type Action =
   | "getProfile"
+  | "prepareLessonFileUploads"
   | "prepareHomeworkPhotoUploads"
   | "completeHomeworkSubmission"
   | "markUpdatesSeen";
 
 type RequestBody = {
   action: Action;
-  token: string;
+  token?: string;
   lessonId?: string;
   comment?: string;
   photos?: PhotoInput[];
+  files?: LessonFileInput[];
 };
 
 type PhotoInput = {
@@ -33,6 +35,12 @@ type PhotoInput = {
   sizeBytes: number;
   width?: number;
   height?: number;
+};
+
+type LessonFileInput = {
+  originalFilename: string;
+  mimeType?: string;
+  sizeBytes: number;
 };
 
 type StudentRecord = {
@@ -82,22 +90,25 @@ Deno.serve(async (req) => {
 
   try {
     const body = (await req.json()) as RequestBody;
-    validateBaseRequest(body);
-
-    const student = await findStudentByToken(body.token);
-    if (!student) {
-      return json({ error: "Invalid or expired student link" }, 404);
-    }
-
     switch (body.action) {
-      case "getProfile":
+      case "getProfile": {
+        const student = await requireStudentByToken(body.token);
         return json(await getProfile(student));
-      case "prepareHomeworkPhotoUploads":
+      }
+      case "prepareLessonFileUploads":
+        return json(await prepareLessonFileUploads(req, body));
+      case "prepareHomeworkPhotoUploads": {
+        const student = await requireStudentByToken(body.token);
         return json(await prepareHomeworkPhotoUploads(student, body));
-      case "completeHomeworkSubmission":
+      }
+      case "completeHomeworkSubmission": {
+        const student = await requireStudentByToken(body.token);
         return json(await completeHomeworkSubmission(student, body));
-      case "markUpdatesSeen":
+      }
+      case "markUpdatesSeen": {
+        const student = await requireStudentByToken(body.token);
         return json(await markUpdatesSeen(student));
+      }
       default:
         return json({ error: "Unsupported action" }, 400);
     }
@@ -160,10 +171,6 @@ function validateBaseRequest(body: RequestBody): void {
   if (!body.action) {
     throw new Error("Action is required.");
   }
-
-  if (!body.token || typeof body.token !== "string") {
-    throw new Error("Student token is required.");
-  }
 }
 
 async function sha256Hex(value: string): Promise<string> {
@@ -187,6 +194,19 @@ async function findStudentByToken(token: string): Promise<StudentRecord | null> 
 
   if (error) throw error;
   return data as StudentRecord | null;
+}
+
+async function requireStudentByToken(token: string | undefined): Promise<StudentRecord> {
+  if (!token || typeof token !== "string") {
+    throw new Error("Student token is required.");
+  }
+
+  const student = await findStudentByToken(token);
+  if (!student) {
+    throw new Error("Invalid or expired student link");
+  }
+
+  return student;
 }
 
 async function getProfile(student: StudentRecord) {
@@ -241,12 +261,14 @@ async function getProfile(student: StudentRecord) {
   if (lessonsError) throw lessonsError;
   if (updateEventsError) throw updateEventsError;
 
-  const lessonsWithSignedMaterials = await attachSignedLessonFileUrls((lessons ?? []) as Array<Record<string, unknown>>);
+  const profileLessons = (lessons ?? []) as Array<Record<string, unknown>>;
+  await attachSignedLessonFileUrls(profileLessons);
+  await attachSignedHomeworkPhotoUrls(profileLessons);
 
   return {
     student,
     usefulLinks: usefulLinks ?? [],
-    lessons: lessonsWithSignedMaterials,
+    lessons: profileLessons,
     updateEvents: updateEvents ?? [],
   };
 }
@@ -275,9 +297,147 @@ async function attachSignedLessonFileUrls(lessons: Array<Record<string, unknown>
   return lessons;
 }
 
+async function attachSignedHomeworkPhotoUrls(lessons: Array<Record<string, unknown>>) {
+  await Promise.all(
+    lessons.flatMap((lesson) => {
+      const submissions = Array.isArray(lesson.homework_submissions) ? lesson.homework_submissions : [];
+
+      return submissions.flatMap((rawSubmission) => {
+        const submission = rawSubmission as { homework_submission_photos?: unknown[] };
+        const photos = Array.isArray(submission.homework_submission_photos)
+          ? submission.homework_submission_photos
+          : [];
+
+        return photos.map(async (rawPhoto) => {
+          const photo = rawPhoto as { storage_path?: string | null; signed_url?: string };
+          if (!photo.storage_path) return;
+
+          const { data, error } = await supabaseAdmin.storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(photo.storage_path, 60 * 10);
+
+          if (!error && data?.signedUrl) {
+            photo.signed_url = data.signedUrl;
+          }
+        });
+      });
+    }),
+  );
+
+  return lessons;
+}
+
 function lessonFileStoragePathFromUrl(url: string | null | undefined): string | null {
   if (!url?.startsWith(LESSON_FILE_URL_PREFIX)) return null;
   return url.slice(LESSON_FILE_URL_PREFIX.length);
+}
+
+async function prepareLessonFileUploads(req: Request, body: RequestBody) {
+  if (!body.lessonId) throw new Error("lessonId is required.");
+  const tutor = await getTutorFromRequest(req);
+  const lesson = await findTutorLesson(tutor.id, body.lessonId);
+  if (!lesson) throw new Error("Lesson not found for this tutor.");
+
+  const files = validateLessonFiles(body.files);
+
+  const uploadTargets = await Promise.all(
+    files.map(async (file, index) => {
+      const fileId = crypto.randomUUID();
+      const storagePath = [
+        `tutor_${tutor.id}`,
+        `student_${lesson.student_id}`,
+        `lesson_${lesson.id}`,
+        `${fileId}_${safeStorageFilename(file.originalFilename)}`,
+      ].join("/");
+
+      const { data, error } = await supabaseAdmin.storage
+        .from(LESSON_FILE_BUCKET)
+        .createSignedUploadUrl(storagePath);
+
+      if (error) throw error;
+
+      return {
+        clientFileIndex: index,
+        storagePath,
+        token: data.token,
+        signedUrl: data.signedUrl,
+      };
+    }),
+  );
+
+  return {
+    lessonId: lesson.id,
+    uploadTargets,
+  };
+}
+
+async function getTutorFromRequest(req: Request): Promise<{ id: string; auth_user_id: string }> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!jwt) throw new Error("Tutor auth token is required.");
+
+  const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(jwt);
+  if (userError) throw userError;
+  const user = userData.user;
+  if (!user) throw new Error("Tutor auth session not found.");
+
+  const { data, error } = await supabaseAdmin
+    .from("tutors")
+    .select("id,auth_user_id")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error("Tutor profile not found.");
+
+  return data as { id: string; auth_user_id: string };
+}
+
+async function findTutorLesson(tutorId: string, lessonId: string): Promise<{ id: string; student_id: string } | null> {
+  const { data, error } = await supabaseAdmin
+    .from("lessons")
+    .select("id,student_id,students!inner(tutor_id)")
+    .eq("id", lessonId)
+    .eq("students.tutor_id", tutorId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return data as { id: string; student_id: string };
+}
+
+function validateLessonFiles(files: LessonFileInput[] | undefined): LessonFileInput[] {
+  if (!files || !Array.isArray(files) || files.length === 0) {
+    throw new Error("At least one lesson file is required.");
+  }
+
+  if (files.length > 10) {
+    throw new Error("No more than 10 lesson files are allowed.");
+  }
+
+  for (const file of files) {
+    if (!file.originalFilename?.trim()) throw new Error("File name is required.");
+    if (!Number.isFinite(file.sizeBytes) || file.sizeBytes <= 0) {
+      throw new Error("File sizeBytes must be positive.");
+    }
+    if (file.sizeBytes > 25 * 1024 * 1024) {
+      throw new Error("Lesson file exceeds the 25 MB size limit.");
+    }
+  }
+
+  return files;
+}
+
+function safeStorageFilename(fileName: string): string {
+  const safe = fileName
+    .trim()
+    .replace(/[^\wа-яА-ЯёЁ.\- ]/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 120);
+
+  return safe || "file";
 }
 
 async function prepareHomeworkPhotoUploads(student: StudentRecord, body: RequestBody) {

@@ -1,6 +1,7 @@
 import type {
   ApiResult,
   LessonMaterialSyncPayload,
+  PrepareLessonFileUploadsResult,
   SaveLessonPayload,
   SoftDeleteLessonPayload,
   ToggleLessonPaidPayload,
@@ -9,10 +10,10 @@ import type { Lesson, LessonMaterial } from '../../types/domain'
 import { getSupabaseClient } from './supabaseClient'
 import { mapLesson, mapLessonMaterial } from '../mappers/lessonMapper'
 import type { LessonMaterialRow, LessonRow } from '../mappers/lessonMapper'
+import type { HomeworkPhotoRow } from '../mappers/homeworkMapper'
 import {
   getLessonFileStoragePath,
   LESSON_FILE_BUCKET,
-  safeLessonFileName,
   toLessonFileUrl,
 } from '../../utils/lessonFiles'
 
@@ -106,7 +107,9 @@ async function fetchLesson(lessonId: string): Promise<ApiResult<Lesson>> {
     if (error) throw error
     if (!data) return { data: null, error: 'Урок не найден.' }
 
-    const lessonRows = await attachSignedLessonFileUrls([data as unknown as LessonRow])
+    let lessonRows = [data as unknown as LessonRow]
+    lessonRows = await attachSignedHomeworkPhotoUrls(lessonRows)
+    lessonRows = await attachSignedLessonFileUrls(lessonRows)
     return { data: mapLesson(lessonRows[0]), error: null }
   } catch (error) {
     return { data: null, error: apiErrorMessage(error) }
@@ -167,74 +170,81 @@ async function createUpdateEvent(studentId: string, lessonId: string, eventType:
   if (studentError) throw studentError
 }
 
-async function getAuthenticatedTutorId() {
+async function prepareLessonFileUploads(lessonId: string, files: File[]) {
   const supabase = getSupabaseClient()
   if (!supabase) throw new Error('Supabase env не настроены.')
 
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-  if (sessionError) throw sessionError
-  const user = sessionData.session?.user
-  if (!user) throw new Error('Войдите как репетитор, чтобы прикреплять файлы.')
-
-  const { data, error } = await supabase
-    .from('tutors')
-    .select('id')
-    .eq('auth_user_id', user.id)
-    .maybeSingle()
+  const { data, error } = await supabase.functions.invoke<PrepareLessonFileUploadsResult & { error?: string }>(
+    'student-token-flow',
+    {
+      body: {
+        action: 'prepareLessonFileUploads',
+        lessonId,
+        files: files.map((file) => ({
+          originalFilename: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          sizeBytes: file.size,
+        })),
+      },
+    },
+  )
 
   if (error) throw error
-  if (!data?.id) throw new Error('Профиль репетитора не найден.')
+  if (data?.error) throw new Error(data.error)
+  if (!data) throw new Error('Пустой ответ при подготовке загрузки файла.')
 
-  return data.id as string
+  return data.uploadTargets
 }
 
-async function uploadPendingLessonFile(input: {
-  tutorId: string
-  studentId: string
-  lessonId: string
-  material: LessonMaterial
-}) {
+async function uploadPendingLessonFiles(lessonId: string, materials: LessonMaterial[]) {
   const supabase = getSupabaseClient()
   if (!supabase) throw new Error('Supabase env не настроены.')
-  if (!input.material.pendingFile) return input.material
 
-  const file = input.material.pendingFile
-  const fileId = crypto.randomUUID()
-  const storagePath = [
-    `tutor_${input.tutorId}`,
-    `student_${input.studentId}`,
-    `lesson_${input.lessonId}`,
-    `${fileId}_${safeLessonFileName(file.name)}`,
-  ].join('/')
+  const pendingMaterials = materials.filter((material) => material.pendingFile)
+  if (pendingMaterials.length === 0) return materials
 
-  const { error } = await supabase.storage
-    .from(LESSON_FILE_BUCKET)
-    .upload(storagePath, file, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: false,
-    })
+  const files = pendingMaterials.map((material) => material.pendingFile as File)
+  const uploadTargets = await prepareLessonFileUploads(lessonId, files)
 
-  if (error) throw error
+  await Promise.all(
+    uploadTargets.map(async (target) => {
+      const file = files[target.clientFileIndex]
+      if (!file) throw new Error('Не найден файл для загрузки.')
 
-  return {
-    ...input.material,
-    url: toLessonFileUrl(storagePath),
-    storagePath,
-    pendingFile: undefined,
-    sizeBytes: file.size,
-  }
+      const { error } = await supabase.storage
+        .from(LESSON_FILE_BUCKET)
+        .uploadToSignedUrl(target.storagePath, target.token, file, {
+          contentType: file.type || 'application/octet-stream',
+          upsert: false,
+        })
+
+      if (error) throw error
+    }),
+  )
+
+  const pathByMaterialId = new Map(
+    uploadTargets.map((target) => [pendingMaterials[target.clientFileIndex]?.id, target.storagePath]),
+  )
+
+  return materials.map((material) => {
+    if (!material.pendingFile) return material
+    const storagePath = pathByMaterialId.get(material.id)
+    if (!storagePath) throw new Error('Не удалось сохранить путь файла урока.')
+
+    return {
+      ...material,
+      url: toLessonFileUrl(storagePath),
+      storagePath,
+      pendingFile: undefined,
+      sizeBytes: material.pendingFile.size,
+    }
+  })
 }
 
-async function prepareMaterialsForSave(lessonId: string, studentId: string, materials: LessonMaterial[]) {
-  const hasPendingFiles = materials.some((material) => material.pendingFile)
-  const tutorId = hasPendingFiles ? await getAuthenticatedTutorId() : null
+async function prepareMaterialsForSave(lessonId: string, materials: LessonMaterial[]) {
+  const uploadedMaterials = await uploadPendingLessonFiles(lessonId, materials)
 
-  return Promise.all(
-    materials.map(async (material) => {
-      if (material.pendingFile && tutorId) {
-        return uploadPendingLessonFile({ tutorId, studentId, lessonId, material })
-      }
-
+  return uploadedMaterials.map((material) => {
       if (material.storagePath) {
         return {
           ...material,
@@ -243,8 +253,7 @@ async function prepareMaterialsForSave(lessonId: string, studentId: string, mate
       }
 
       return material
-    }),
-  )
+  })
 }
 
 async function attachSignedLessonFileUrls(lessons: LessonRow[]) {
@@ -271,7 +280,30 @@ async function attachSignedLessonFileUrls(lessons: LessonRow[]) {
   return lessons
 }
 
-async function syncMaterials(lessonId: string, studentId: string, materials: LessonMaterial[]) {
+async function attachSignedHomeworkPhotoUrls(lessons: LessonRow[]) {
+  const supabase = getSupabaseClient()
+  if (!supabase) return lessons
+
+  const photoRows = lessons.flatMap((lesson) =>
+    (lesson.homework_submissions || []).flatMap((submission) => submission.homework_submission_photos || []),
+  )
+
+  await Promise.all(
+    photoRows.map(async (photo) => {
+      const { data, error } = await supabase.storage
+        .from('homework-photos')
+        .createSignedUrl(photo.storage_path, 60 * 10)
+
+      if (!error && data?.signedUrl) {
+        ;(photo as HomeworkPhotoRow).signed_url = data.signedUrl
+      }
+    }),
+  )
+
+  return lessons
+}
+
+async function syncMaterials(lessonId: string, materials: LessonMaterial[]) {
   const supabase = getSupabaseClient()
   if (!supabase) return
 
@@ -282,7 +314,7 @@ async function syncMaterials(lessonId: string, studentId: string, materials: Les
 
   if (listError) throw listError
 
-  const preparedMaterials = await prepareMaterialsForSave(lessonId, studentId, materials)
+  const preparedMaterials = await prepareMaterialsForSave(lessonId, materials)
   const nextPersistedIds = new Set(materials.filter((material) => uuidPattern.test(material.id)).map((material) => material.id))
   const idsToDelete = (existingRows || [])
     .map((row) => row.id)
@@ -380,7 +412,9 @@ export async function listLessonsByStudent(studentId: string): Promise<ApiResult
 
     if (error) throw error
 
-    const lessonRows = await attachSignedLessonFileUrls((data || []) as unknown as LessonRow[])
+    let lessonRows = (data || []) as unknown as LessonRow[]
+    lessonRows = await attachSignedHomeworkPhotoUrls(lessonRows)
+    lessonRows = await attachSignedLessonFileUrls(lessonRows)
     return { data: lessonRows.map(mapLesson), error: null }
   } catch (error) {
     return { data: null, error: apiErrorMessage(error) }
@@ -414,7 +448,7 @@ export async function saveLesson(payload: SaveLessonPayload): Promise<ApiResult<
       lessonId = data.id
     }
 
-    await syncMaterials(lessonId, payload.studentId, payload.materials)
+    await syncMaterials(lessonId, payload.materials)
 
     const updateEventType = getUpdateEventType(previousLesson, payload)
     if (updateEventType) {
@@ -469,7 +503,7 @@ export async function syncLessonMaterials(payload: LessonMaterialSyncPayload): P
     const lesson = await fetchLesson(payload.lessonId)
     if (!lesson.data) throw new Error(lesson.error || 'Урок не найден.')
 
-    await syncMaterials(payload.lessonId, lesson.data.studentId, payload.materials)
+    await syncMaterials(payload.lessonId, payload.materials)
 
     const { data, error } = await supabase
       .from('lesson_materials')
