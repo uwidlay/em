@@ -40,6 +40,38 @@ import './styles/app.css'
 
 const initialWorkspace = getMockTutorWorkspace()
 const hasSupabaseClient = Boolean(getSupabaseClient())
+const studentTokenCacheKey = 'tutor-space.student-tokens.v1'
+
+function readStudentTokenCache() {
+  if (typeof window === 'undefined') return {}
+
+  try {
+    const rawValue = window.localStorage.getItem(studentTokenCacheKey)
+    if (!rawValue) return {}
+    const parsed = JSON.parse(rawValue)
+    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, string> : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeStudentTokenToCache(studentId: string, token: string) {
+  if (typeof window === 'undefined' || !token) return
+
+  const currentCache = readStudentTokenCache()
+  window.localStorage.setItem(studentTokenCacheKey, JSON.stringify({
+    ...currentCache,
+    [studentId]: token,
+  }))
+}
+
+function restoreCachedStudentTokens(students: Student[]) {
+  const tokenCache = readStudentTokenCache()
+  return students.map((student) => ({
+    ...student,
+    token: student.token || tokenCache[student.id] || '',
+  }))
+}
 
 function App() {
   const [tutor, setTutor] = useState<Tutor>(initialWorkspace.tutor)
@@ -80,7 +112,7 @@ function App() {
     }
 
     setTutor(result.data.tutor)
-    setStudents(result.data.students)
+    setStudents(restoreCachedStudentTokens(result.data.students))
     setLessons(result.data.lessons)
     setWorkspaceError(null)
     setIsSupabaseWorkspace(true)
@@ -191,6 +223,7 @@ function App() {
       }
 
       const createdStudent = result.data.student
+      writeStudentTokenToCache(createdStudent.id, createdStudent.token)
       setStudents((current) => [createdStudent, ...current])
       showToast('Ученик создан. Новая ссылка доступна в карточке ученика.')
       return { ok: true }
@@ -319,6 +352,7 @@ function App() {
       }
 
       const plaintextToken = result.data.plaintextToken
+      writeStudentTokenToCache(studentId, plaintextToken)
       setStudents((current) =>
         current.map((student) =>
           student.id === studentId ? { ...student, token: plaintextToken } : student,
