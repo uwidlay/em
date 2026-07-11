@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AppShell } from './components/AppShell'
 import { AuthLayout } from './components/AuthLayout'
 import { mockScheduleEvents } from './mocks/mockData'
@@ -51,15 +51,25 @@ function App() {
   const [isSupabaseWorkspace, setIsSupabaseWorkspace] = useState(false)
   const [hasAuthSession, setHasAuthSession] = useState(() => !hasSupabaseClient)
   const [isAuthChecking, setIsAuthChecking] = useState(() => hasSupabaseClient)
+  const workspaceLoadedRef = useRef(!hasSupabaseClient)
+  const workspaceRequestIdRef = useRef(0)
 
   const pendingReviews = useMemo(
     () => lessons.filter((lesson) => lesson.homeworkStatus === 'in_review' && !lesson.deletedAt).length,
     [lessons],
   )
 
-  const loadTutorWorkspace = useCallback(async () => {
-    setIsWorkspaceLoading(true)
+  const loadTutorWorkspace = useCallback(async (options?: { silent?: boolean }) => {
+    const requestId = workspaceRequestIdRef.current + 1
+    workspaceRequestIdRef.current = requestId
+
+    if (!options?.silent && !workspaceLoadedRef.current) {
+      setIsWorkspaceLoading(true)
+    }
+
     const result = await getTutorWorkspace()
+
+    if (requestId !== workspaceRequestIdRef.current) return
 
     setIsWorkspaceLoading(false)
 
@@ -74,6 +84,7 @@ function App() {
     setLessons(result.data.lessons)
     setWorkspaceError(null)
     setIsSupabaseWorkspace(true)
+    workspaceLoadedRef.current = true
   }, [])
 
   useEffect(() => {
@@ -107,10 +118,9 @@ function App() {
       setIsAuthChecking(false)
 
       if (session) {
-        setStudents([])
-        setLessons([])
         void loadTutorWorkspace()
       } else {
+        workspaceLoadedRef.current = false
         setStudents([])
         setLessons([])
         setWorkspaceError(null)
@@ -125,11 +135,12 @@ function App() {
         setHasAuthSession(Boolean(session))
         setIsAuthChecking(false)
 
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          void loadTutorWorkspace()
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          void loadTutorWorkspace({ silent: workspaceLoadedRef.current })
         }
 
         if (event === 'SIGNED_OUT') {
+          workspaceLoadedRef.current = false
           setTutor(initialWorkspace.tutor)
           setStudents([])
           setLessons([])
