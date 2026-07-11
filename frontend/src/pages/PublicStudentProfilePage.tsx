@@ -13,6 +13,7 @@ import {
 import type { Lesson, Student, StudentUpdateEvent } from '../types/domain'
 import { formatDate, formatDateTime } from '../utils/format'
 import { selectActualHomework } from '../utils/homework'
+import { compareLessonsNewestFirst } from '../utils/lessons'
 
 type PublicProfileState = {
   student: Student
@@ -86,7 +87,7 @@ export function PublicStudentProfilePage() {
   const studentLessons = useMemo(() => {
     return [...(profile?.lessons || [])]
       .filter((lesson) => !lesson.deletedAt)
-      .sort((a, b) => b.date.localeCompare(a.date))
+      .sort(compareLessonsNewestFirst)
   }, [profile?.lessons])
 
   const actualHomework = selectActualHomework(studentLessons)

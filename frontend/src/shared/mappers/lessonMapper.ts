@@ -15,6 +15,7 @@ export type LessonMaterialRow = {
 export type LessonRow = {
   id: string
   student_id: string
+  created_at?: string | null
   lesson_date: string
   topic: string
   comprehension_rating: number | null
@@ -49,6 +50,7 @@ export function mapLesson(row: LessonRow): Lesson {
   return {
     id: row.id,
     studentId: row.student_id,
+    createdAt: row.created_at || undefined,
     date: row.lesson_date,
     topic: row.topic,
     materials: materials.map(mapLessonMaterial),

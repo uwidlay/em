@@ -82,6 +82,7 @@ export type HomeworkSubmission = {
 export type Lesson = {
   id: string
   studentId: string
+  createdAt?: string
   date: string
   topic: string
   materials: LessonMaterial[]

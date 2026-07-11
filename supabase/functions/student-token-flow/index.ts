@@ -226,6 +226,7 @@ async function getProfile(student: StudentRecord) {
         .select(
           `
           id,
+          created_at,
           lesson_date,
           topic,
           comprehension_rating,

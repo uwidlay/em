@@ -654,7 +654,58 @@
 .lesson-table {
   border-collapse: collapse;
   min-width: 1180px;
+  table-layout: fixed;
   width: 100%;
+}
+
+.lesson-table th:nth-child(1),
+.lesson-table td:nth-child(1) {
+  width: 108px;
+}
+
+.lesson-table th:nth-child(2),
+.lesson-table td:nth-child(2) {
+  width: 170px;
+}
+
+.lesson-table th:nth-child(3),
+.lesson-table td:nth-child(3) {
+  width: 170px;
+}
+
+.lesson-table th:nth-child(4),
+.lesson-table td:nth-child(4) {
+  width: 112px;
+}
+
+.lesson-table th:nth-child(5),
+.lesson-table td:nth-child(5) {
+  width: 230px;
+}
+
+.lesson-table th:nth-child(6),
+.lesson-table td:nth-child(6) {
+  width: 135px;
+}
+
+.lesson-table th:nth-child(7),
+.lesson-table td:nth-child(7) {
+  width: 270px;
+}
+
+.lesson-table th:nth-child(8),
+.lesson-table td:nth-child(8) {
+  width: 180px;
+}
+
+.lesson-table th:nth-child(9),
+.lesson-table td:nth-child(9) {
+  width: 86px;
+}
+
+.lesson-table th:nth-child(10),
+.lesson-table td:nth-child(10) {
+  width: 180px;
 }
 
 .lesson-table th {
@@ -668,6 +719,7 @@
 
 .lesson-table td {
   border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
   padding: 12px;
   text-align: left;
   vertical-align: top;
@@ -723,6 +775,27 @@
 .materials-list {
   display: grid;
   gap: 7px;
+}
+
+.homework-cell {
+  align-content: start;
+}
+
+.homework-text-preview {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  display: -webkit-box;
+  line-height: 1.4;
+  max-height: 7em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.submission-cell {
+  align-content: start;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .submission-card {

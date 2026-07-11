@@ -68,6 +68,7 @@ async function fetchLesson(lessonId: string): Promise<ApiResult<Lesson>> {
       .select(`
         id,
         student_id,
+        created_at,
         lesson_date,
         topic,
         comprehension_rating,
@@ -374,6 +375,7 @@ export async function listLessonsByStudent(studentId: string): Promise<ApiResult
       .select(`
         id,
         student_id,
+        created_at,
         lesson_date,
         topic,
         comprehension_rating,
@@ -409,6 +411,7 @@ export async function listLessonsByStudent(studentId: string): Promise<ApiResult
       `)
       .eq('student_id', studentId)
       .order('lesson_date', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) throw error
 

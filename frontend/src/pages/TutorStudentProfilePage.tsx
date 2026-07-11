@@ -8,6 +8,7 @@ import { LessonTable } from '../components/LessonTable'
 import type { Lesson, Student } from '../types/domain'
 import { formatDate } from '../utils/format'
 import { selectActualHomework } from '../utils/homework'
+import { compareLessonsNewestFirst } from '../utils/lessons'
 
 type Props = {
   students: Student[]
@@ -39,7 +40,7 @@ export function TutorStudentProfilePage({
   const studentLessons = useMemo(() => {
     return lessons
       .filter((lesson) => lesson.studentId === studentId && !lesson.deletedAt)
-      .sort((a, b) => b.date.localeCompare(a.date))
+      .sort(compareLessonsNewestFirst)
   }, [lessons, studentId])
 
   const actualHomework = selectActualHomework(studentLessons)

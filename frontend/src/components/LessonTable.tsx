@@ -147,7 +147,9 @@ export function LessonTable({
                 </td>
                 <td><Stars value={lesson.understandingRating} /></td>
                 <td className="homework-cell">
-                  <strong>{lesson.homeworkText || 'Д/З не задано'}</strong>
+                  <strong className="homework-text-preview" title={lesson.homeworkText || undefined}>
+                    {lesson.homeworkText || 'Д/З не задано'}
+                  </strong>
                   {lesson.homeworkDeadline && <small>Дедлайн: {formatDate(lesson.homeworkDeadline)}</small>}
                 </td>
                 <td><StatusBadge type="homework" value={lesson.homeworkStatus} /></td>
@@ -262,7 +264,7 @@ export function LessonTable({
 
                 <section>
                   <span className="mobile-card-label">Д/З</span>
-                  <p>{lesson.homeworkText || 'Д/З не задано'}</p>
+                  <p className="homework-text-preview">{lesson.homeworkText || 'Д/З не задано'}</p>
                   {lesson.homeworkDeadline && <small>Дедлайн: {formatDate(lesson.homeworkDeadline)}</small>}
                 </section>
 

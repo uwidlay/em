@@ -223,6 +223,7 @@ export async function getTutorWorkspace(): Promise<ApiResult<TutorWorkspaceResul
         .select(`
           id,
           student_id,
+          created_at,
           lesson_date,
           topic,
           comprehension_rating,
@@ -258,6 +259,7 @@ export async function getTutorWorkspace(): Promise<ApiResult<TutorWorkspaceResul
         `)
         .in('student_id', studentIds)
         .order('lesson_date', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (lessonsError) throw lessonsError
       lessonRows = (lessonsData || []) as unknown as LessonRow[]

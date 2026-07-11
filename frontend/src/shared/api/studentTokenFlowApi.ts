@@ -16,6 +16,7 @@ import type { UsefulLinkRow } from '../mappers/studentMapper'
 import { mapUpdateEvent } from '../mappers/updateEventMapper'
 import type { UpdateEventRow } from '../mappers/updateEventMapper'
 import type { Lesson, Student, StudentUpdateEvent } from '../../types/domain'
+import { compareLessonsNewestFirst } from '../../utils/lessons'
 
 type StudentTokenAction =
   | 'getProfile'
@@ -161,7 +162,7 @@ export async function getPublicStudentProfile(token: string): Promise<ApiResult<
   const student = mapPublicStudent(profile.student, token, usefulLinks, updateEvents)
   const lessons = (profile.lessons || [])
     .map((lesson) => mapPublicLesson(lesson, profile.student.id))
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort(compareLessonsNewestFirst)
 
   return {
     data: {
