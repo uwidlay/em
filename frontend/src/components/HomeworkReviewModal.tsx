@@ -42,11 +42,17 @@ export function HomeworkReviewModal({ lesson, onClose, onSave }: Props) {
                   </header>
                   {submission.comment ? <p>{submission.comment}</p> : <p className="muted">Комментарий не добавлен.</p>}
                   <div className="submission-files">
-                    {submission.photos.map((photo) => (
-                      <span className="chip" key={photo.id}>
-                        {photo.name} · {photo.sizeMb} МБ
-                      </span>
-                    ))}
+                    {submission.photos.map((photo) =>
+                      photo.previewUrl ? (
+                        <a className="chip file-chip-link" href={photo.previewUrl} target="_blank" rel="noreferrer" key={photo.id}>
+                          Открыть фото: {photo.name} · {photo.sizeMb} МБ
+                        </a>
+                      ) : (
+                        <span className="chip unavailable-file-chip" key={photo.id}>
+                          {photo.name} · {photo.sizeMb} МБ · фото пока недоступно
+                        </span>
+                      ),
+                    )}
                   </div>
                 </article>
               ))

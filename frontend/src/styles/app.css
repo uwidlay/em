@@ -501,6 +501,20 @@
   background: var(--soft);
 }
 
+.file-chip-link {
+  color: var(--text);
+  max-width: 100%;
+  text-decoration: none;
+}
+
+.file-chip-link:hover {
+  background: #ead8df;
+}
+
+.unavailable-file-chip {
+  color: var(--muted);
+}
+
 .review-badge,
 .homework-in_review {
   background: var(--text);
