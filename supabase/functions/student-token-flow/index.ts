@@ -347,7 +347,7 @@ async function prepareLessonFileUploads(req: Request, body: RequestBody) {
         `tutor_${tutor.id}`,
         `student_${lesson.student_id}`,
         `lesson_${lesson.id}`,
-        `${fileId}_${safeStorageFilename(file.originalFilename)}`,
+        `${fileId}.${lessonFileExtension(file)}`,
       ].join("/");
 
       const { data, error } = await supabaseAdmin.storage
@@ -430,14 +430,30 @@ function validateLessonFiles(files: LessonFileInput[] | undefined): LessonFileIn
   return files;
 }
 
-function safeStorageFilename(fileName: string): string {
-  const safe = fileName
-    .trim()
-    .replace(/[^\wа-яА-ЯёЁ.\- ]/g, "_")
-    .replace(/\s+/g, "_")
-    .slice(0, 120);
+function lessonFileExtension(file: LessonFileInput): string {
+  const mimeType = (file.mimeType || "").toLowerCase();
+  const extensionByMimeType: Record<string, string> = {
+    "application/pdf": "pdf",
+    "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/vnd.ms-powerpoint": "ppt",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+    "application/vnd.ms-excel": "xls",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/heic": "heic",
+    "image/heif": "heif",
+    "text/plain": "txt",
+  };
 
-  return safe || "file";
+  if (extensionByMimeType[mimeType]) return extensionByMimeType[mimeType];
+
+  const rawExtension = file.originalFilename.split(".").pop()?.toLowerCase() || "";
+  const safeExtension = rawExtension.replace(/[^a-z0-9]/g, "").slice(0, 8);
+
+  return safeExtension || "bin";
 }
 
 async function prepareHomeworkPhotoUploads(student: StudentRecord, body: RequestBody) {

@@ -68,11 +68,17 @@ function SubmissionCard({ submission, index }: { submission: HomeworkSubmission;
         <p className="muted">Комментарий не добавлен.</p>
       )}
       <div className="submission-files" aria-label={`Файлы сдачи ${index + 1}`}>
-        {submission.photos.map((photo) => (
-          <span className="chip" key={photo.id}>
-            {photo.name} · {photo.sizeMb} МБ
-          </span>
-        ))}
+        {submission.photos.map((photo) =>
+          photo.previewUrl ? (
+            <a className="chip file-chip-link" href={photo.previewUrl} target="_blank" rel="noreferrer" key={photo.id}>
+              {photo.name} · {photo.sizeMb} МБ
+            </a>
+          ) : (
+            <span className="chip" key={photo.id}>
+              {photo.name} · {photo.sizeMb} МБ
+            </span>
+          ),
+        )}
       </div>
       <small>Старые файлы сохранены и недоступны для редактирования.</small>
     </article>
