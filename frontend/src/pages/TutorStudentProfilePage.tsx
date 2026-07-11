@@ -17,7 +17,7 @@ type Props = {
   onDeleteLesson: (lessonId: string) => void
   onToggleLessonPaid: (lessonId: string) => void
   onRegenerateToken: (studentId: string) => void
-  onCopyStudentLink: (token: string) => void
+  onCopyStudentLink: (studentId: string, token: string) => void
 }
 
 export function TutorStudentProfilePage({
@@ -62,7 +62,7 @@ export function TutorStudentProfilePage({
             <Edit size={17} />
             Карточка
           </Link>
-          <button className="soft-button" type="button" onClick={() => onCopyStudentLink(student.token)}>
+          <button className="soft-button" type="button" onClick={() => onCopyStudentLink(student.id, student.token)}>
             <Copy size={17} />
             Ссылка
           </button>

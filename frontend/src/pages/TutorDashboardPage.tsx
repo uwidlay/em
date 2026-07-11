@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react'
 type Props = {
   students: Student[]
   lessons: Lesson[]
-  onCopyStudentLink: (token: string) => void
+  onCopyStudentLink: (studentId: string, token: string) => void
 }
 
 export function TutorDashboardPage({ students, lessons, onCopyStudentLink }: Props) {
@@ -164,7 +164,7 @@ export function TutorDashboardPage({ students, lessons, onCopyStudentLink }: Pro
                 </dl>
                 <div className="card-actions">
                   <Link className="primary-button" to={`/app/students/${student.id}`}>Открыть</Link>
-                  <button className="icon-button" type="button" onClick={() => onCopyStudentLink(student.token)} aria-label="Скопировать ссылку">
+                  <button className="icon-button" type="button" onClick={() => onCopyStudentLink(student.id, student.token)} aria-label="Скопировать ссылку">
                     <Copy size={17} />
                   </button>
                 </div>

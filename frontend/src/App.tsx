@@ -196,9 +196,27 @@ function App() {
     return Boolean(getSupabaseClient())
   }
 
-  async function copyStudentLink(token: string) {
-    if (!token) {
-      showToast('Ссылка недоступна: plaintext token не хранится в базе. Создайте новую ссылку для ученика.')
+  async function copyStudentLink(studentId: string, token: string) {
+    let tokenToCopy = token
+
+    if (!tokenToCopy && shouldUseSupabaseApi()) {
+      const result = await regenerateSupabaseStudentToken(studentId)
+      if (!result.data) {
+        showToast(result.error || 'Не удалось создать ссылку ученика.')
+        return
+      }
+
+      tokenToCopy = result.data.plaintextToken
+      writeStudentTokenToCache(studentId, tokenToCopy)
+      setStudents((current) =>
+        current.map((student) =>
+          student.id === studentId ? { ...student, token: tokenToCopy } : student,
+        ),
+      )
+    }
+
+    if (!tokenToCopy) {
+      showToast('Не удалось скопировать ссылку. Создайте новую ссылку для ученика.')
       return
     }
 
@@ -206,8 +224,8 @@ function App() {
       if (!navigator.clipboard) {
         throw new Error('Clipboard API is unavailable')
       }
-      await navigator.clipboard.writeText(studentUrl(token))
-      showToast('Ссылка скопирована.')
+      await navigator.clipboard.writeText(studentUrl(tokenToCopy))
+      showToast(token ? 'Ссылка скопирована.' : 'Новая ссылка создана и скопирована.')
     } catch {
       showToast('Не удалось скопировать ссылку.')
     }
