@@ -1262,6 +1262,13 @@ textarea:focus {
   grid-template-columns: minmax(120px, 0.8fr) minmax(140px, 1fr) minmax(180px, 1.2fr) auto;
 }
 
+.material-remove-button {
+  height: 40px;
+  justify-self: end;
+  min-height: 40px;
+  width: 40px;
+}
+
 .material-upload-actions {
   margin: 10px 0;
 }
@@ -2345,6 +2352,18 @@ textarea:focus {
   .form-grid,
   .review-modal-content {
     grid-template-columns: 1fr;
+  }
+
+  .editable-row.material-row {
+    align-items: stretch;
+  }
+
+  .editable-row.material-row .material-remove-button {
+    align-self: center;
+    height: 42px;
+    justify-self: end;
+    min-height: 42px;
+    width: 42px;
   }
 
   .wide {

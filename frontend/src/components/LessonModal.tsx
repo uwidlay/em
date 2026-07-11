@@ -234,7 +234,7 @@ export function LessonModal({ lesson, studentId, onClose, onSave }: Props) {
                         onChange={(event) => updateMaterial(material.id, 'url', event.target.value)}
                       />
                     )}
-                    <button className="icon-button" type="button" onClick={() => removeMaterial(material.id)} aria-label="Удалить материал">
+                    <button className="icon-button material-remove-button" type="button" onClick={() => removeMaterial(material.id)} aria-label="Удалить материал">
                       <Trash2 size={16} />
                     </button>
                   </div>
