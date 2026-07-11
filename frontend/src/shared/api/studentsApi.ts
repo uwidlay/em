@@ -7,6 +7,7 @@ import type {
   UpdateStudentPayload,
 } from './contracts'
 import type { Student } from '../../types/domain'
+import { studentUrl } from '../../utils/format'
 import { getSupabaseClient } from './supabaseClient'
 import { mapStudent } from '../mappers/studentMapper'
 import type { StudentRow } from '../mappers/studentMapper'
@@ -232,7 +233,7 @@ export async function createStudentWithToken(payload: CreateStudentPayload): Pro
     return {
       data: {
         student: studentResult.data,
-        studentUrl: `/student/${plaintextToken}`,
+        studentUrl: studentUrl(plaintextToken),
         plaintextToken,
       },
       error: null,
@@ -303,7 +304,7 @@ export async function regenerateStudentToken(studentId: string): Promise<ApiResu
     return {
       data: {
         studentId,
-        studentUrl: `/student/${plaintextToken}`,
+        studentUrl: studentUrl(plaintextToken),
         plaintextToken,
       },
       error: null,

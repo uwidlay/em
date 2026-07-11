@@ -46,5 +46,7 @@ export function getLateDays(deadline?: string, submittedAt?: string) {
 }
 
 export function studentUrl(token: string) {
-  return `/student/${token}`
+  const path = `/student/${token}`
+  if (typeof window === 'undefined') return path
+  return `${window.location.origin}${path}`
 }
