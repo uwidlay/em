@@ -55,6 +55,39 @@ export function validateTutorPassword(value: string, options: { optional?: boole
   return ''
 }
 
+export const allowedRussianEmailDomains = [
+  'yandex.ru',
+  'ya.ru',
+  'mail.ru',
+  'bk.ru',
+  'inbox.ru',
+  'list.ru',
+  'internet.ru',
+  'rambler.ru',
+] as const
+
+export function getEmailDomain(value: string) {
+  const email = value.trim().toLowerCase()
+  const [, domain = ''] = email.split('@')
+  return domain
+}
+
+export function validateTutorEmailDomain(value: string) {
+  const email = value.trim()
+  if (!email) return 'Введите email.'
+
+  const domain = getEmailDomain(email)
+  if (!domain || !email.includes('@')) {
+    return 'Введите корректный email.'
+  }
+
+  if (!allowedRussianEmailDomains.includes(domain as (typeof allowedRussianEmailDomains)[number])) {
+    return 'Для регистрации и входа используйте российскую почту: Яндекс, Mail.ru или Rambler.'
+  }
+
+  return ''
+}
+
 export function validateHomeworkDeadline(lessonDate: string, deadline?: string) {
   if (!lessonDate || !deadline) return ''
   if (deadline < lessonDate) {

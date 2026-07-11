@@ -12,6 +12,7 @@ import {
   normalizeTutorPhoneInput,
   passwordRequirementStates,
   validateRussianPhone,
+  validateTutorEmailDomain,
   validateTutorPassword,
 } from '../../utils/validation'
 
@@ -59,8 +60,14 @@ export function LoginPage() {
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
-    if (!email.trim() || !password) {
-      setError('Введите email и пароль.')
+    const emailError = validateTutorEmailDomain(email)
+    if (emailError) {
+      setError(emailError)
+      return
+    }
+
+    if (!password) {
+      setError('Введите пароль.')
       return
     }
 
@@ -116,7 +123,7 @@ export function RegisterPage() {
     event.preventDefault()
     const nextErrors = {
       name: name.trim() ? '' : 'Введите имя репетитора.',
-      email: email.trim() ? '' : 'Введите email.',
+      email: validateTutorEmailDomain(email),
       phone: validateRussianPhone(phone),
       password: validateTutorPassword(password),
       form: '',
@@ -215,6 +222,12 @@ export function ConfirmEmailPage() {
       return
     }
 
+    const emailError = validateTutorEmailDomain(email)
+    if (emailError) {
+      setError(emailError)
+      return
+    }
+
     setIsLoading(true)
     const result = await resendTutorConfirmation(email.trim())
     setIsLoading(false)
@@ -266,8 +279,9 @@ export function ForgotPasswordPage() {
     setError('')
     setMessage('')
 
-    if (!email.trim()) {
-      setError('Введите email.')
+    const emailError = validateTutorEmailDomain(email)
+    if (emailError) {
+      setError(emailError)
       return
     }
 
